@@ -18,9 +18,17 @@ def child_text(parent, name):
     return element.text if element is not None else None
 
 
-def first_value(data, *names):
-    """check dictionary keys in order and return the first non-empty value."""
-    return next((data[name] for name in names if data.get(name)), None)
+def parse_user(data):
+    """return the user as domain\\username when the domain is available."""
+    user = data.get("User")
+    if user:
+        return user
+
+    username = data.get("SubjectUserName")
+    domain = data.get("SubjectDomainName")
+    if domain and domain != "-" and username:
+        return f"{domain}\\{username}"
+    return username
 
 
 def parse_hashes(value):
@@ -97,7 +105,7 @@ def normalize_event(root):
         ),
         "file_hashes": parse_hashes(event_data.get("Hashes")),
         "hostname": child_text(system, "Computer"),
-        "user": first_value(event_data, "User", "SubjectUserName"),
+        "user": parse_user(event_data),
         "parent_process": {
             "guid": event_data.get("ParentProcessGuid"),
             "pid": parse_process_id(parent_pid),
