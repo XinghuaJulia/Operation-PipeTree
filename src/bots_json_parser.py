@@ -1,11 +1,13 @@
 import argparse
 import gzip
 import json
+import sqlite3
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from parser import normalize_event
+from sqlite_store import store_events
 
 
 def open_text(path):
@@ -113,6 +115,11 @@ def build_argument_parser():
         default="json",
         help="write a JSON array (default) or newline-delimited JSON",
     )
+    parser.add_argument(
+        "--database",
+        type=Path,
+        help="store normalized events in this SQLite database",
+    )
     return parser
 
 
@@ -124,11 +131,14 @@ def main():
 
     try:
         events = parse_bots_events(args.input, limit=args.limit)
-        if args.output_format == "jsonl":
+        if args.database:
+            count = store_events(args.database, events)
+            print(f"stored {count} events in {args.database}")
+        elif args.output_format == "jsonl":
             write_json_lines(events, sys.stdout)
         else:
             write_json_array(events, sys.stdout)
-    except (OSError, ValueError) as error:
+    except (OSError, sqlite3.Error, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     except BrokenPipeError:

@@ -1,8 +1,11 @@
 import argparse
 import json
+import sqlite3
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+from sqlite_store import store_events
 
 
 EVENT_NAMESPACE = "http://schemas.microsoft.com/win/2004/08/events/event"
@@ -190,6 +193,11 @@ def build_argument_parser():
         description="Normalize newline-delimited Windows Event XML as JSON."
     )
     parser.add_argument("input", type=Path, help="path to the Windows event log")
+    parser.add_argument(
+        "--database",
+        type=Path,
+        help="store normalized events in this SQLite database",
+    )
     return parser
 
 
@@ -198,12 +206,16 @@ def main():
     args = build_argument_parser().parse_args()
 
     try:
-        events = list(parse_events(args.input))
-    except (OSError, ValueError) as error:
+        events = parse_events(args.input)
+        if args.database:
+            count = store_events(args.database, events)
+            print(f"stored {count} events in {args.database}")
+        else:
+            print(json.dumps(list(events), indent=2))
+    except (OSError, sqlite3.Error, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
 
-    print(json.dumps(events, indent=2))
     return 0
 
 
