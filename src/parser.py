@@ -9,8 +9,8 @@ EVENT_NAMESPACE = "http://schemas.microsoft.com/win/2004/08/events/event"
 NS = {"event": EVENT_NAMESPACE}
 
 
-# finds namespaced direct child and return the text
 def child_text(parent, name):
+    """find a namespaced direct child and return its text."""
     if parent is None:
         return None
 
@@ -18,12 +18,13 @@ def child_text(parent, name):
     return element.text if element is not None else None
 
 
-# checks dictioinary keys in order and returns the first non-empty value
 def first_value(data, *names):
+    """check dictionary keys in order and return the first non-empty value."""
     return next((data[name] for name in names if data.get(name)), None)
 
-# convert sysmon hashes to a dictionary of algorithm:hash, all lower case
+
 def parse_hashes(value):
+    """convert Sysmon hashes to a dictionary with lowercase algorithm names."""
     hashes = {}
     for item in (value or "").split(","):
         algorithm, separator, digest = item.strip().partition("=")
@@ -31,8 +32,9 @@ def parse_hashes(value):
             hashes[algorithm.lower()] = digest
     return hashes
 
-# parses decimal/hexadecimal windows PID to int
+
 def parse_process_id(value):
+    """convert a decimal or hexadecimal Windows process ID to an integer."""
     if value is None:
         return None
 
@@ -43,7 +45,7 @@ def parse_process_id(value):
 
 
 def parse_boolean(value):
-    """Convert common Windows event boolean strings while preserving unknown values."""
+    """convert Windows event boolean strings and preserve unknown values."""
     if value is None:
         return None
 
@@ -56,6 +58,7 @@ def parse_boolean(value):
 
 
 def normalize_event(root):
+    """normalize one Windows Event XML element."""
     system = root.find("event:System", NS)
     if system is None:
         raise ValueError("Event has no System element")
@@ -74,9 +77,8 @@ def normalize_event(root):
         if element.get("Name")
     }
 
-    # Security event 4688 describes the created process with NewProcess* and
-    # the creator/parent with ProcessId and ParentProcessName. Sysmon event 1
-    # uses Process* and ParentProcess* consistently.
+    # event 4688 uses NewProcess* for the child and ProcessId for the parent
+    # sysmon event 1 uses Process* for the child and ParentProcess* for the parent
     if event_id == 4688:
         process_pid = event_data.get("NewProcessId")
         process_image = event_data.get("NewProcessName")
@@ -161,7 +163,7 @@ def normalize_event(root):
 
 
 def parse_events(path):
-    """Parse a log containing one complete Windows Event XML record per line."""
+    """parse a log containing one Windows Event XML record per line."""
     with path.open("r", encoding="utf-8-sig") as input_file:
         for line_number, line in enumerate(input_file, start=1):
             if not line.strip():
@@ -175,6 +177,7 @@ def parse_events(path):
 
 
 def build_argument_parser():
+    """build the command-line argument parser."""
     parser = argparse.ArgumentParser(
         description="Normalize newline-delimited Windows Event XML as JSON."
     )
@@ -183,6 +186,7 @@ def build_argument_parser():
 
 
 def main():
+    """run the parser command-line interface."""
     args = build_argument_parser().parse_args()
 
     try:

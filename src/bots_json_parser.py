@@ -9,14 +9,14 @@ from parser import normalize_event
 
 
 def open_text(path):
-    """Open plain JSON Lines or gzip-compressed JSON Lines as text."""
+    """open plain or gzip-compressed JSON Lines as text."""
     if path.suffix.lower() == ".gz":
         return gzip.open(path, "rt", encoding="utf-8-sig")
     return path.open("r", encoding="utf-8-sig")
 
 
 def normalize_bots_record(record):
-    """Normalize one Splunk BOTS export record through the XML parser."""
+    """normalize one Splunk BOTS record through the XML parser."""
     result = record.get("result")
     if not isinstance(result, dict):
         raise ValueError("record does not contain a result object")
@@ -43,7 +43,7 @@ def normalize_bots_record(record):
 
 
 def parse_bots_events(path, limit=None):
-    """Stream normalized events from a BOTS JSON Lines export."""
+    """stream normalized events from a BOTS JSON Lines export."""
     emitted = 0
 
     with open_text(path) as input_file:
@@ -70,7 +70,7 @@ def parse_bots_events(path, limit=None):
 
 
 def write_json_array(events, output):
-    """Write a JSON array incrementally without holding every event in memory."""
+    """write a JSON array without storing every event in memory."""
     output.write("[")
     first = True
 
@@ -87,7 +87,7 @@ def write_json_array(events, output):
 
 
 def write_json_lines(events, output):
-    """Write one compact normalized JSON object per line."""
+    """write one compact normalized JSON object per line."""
     for event in events:
         output.write(json.dumps(event, separators=(",", ":")))
         output.write("\n")
