@@ -108,5 +108,51 @@ The available filters:
 
 If `--output` is not supplied, the timeline is written to `outputs/timeline.html`. Default event limit is 500.
 
+### `src/extract_iocs.py`
 
+Extracts domains, IP addresses, URLs and hashes from the normalized events in SQLite. It normalizes and deduplicates the values, then stores them in the `indicators` table. The `indicator_events` table links each indicator to the event and field it came from.
+
+Extract and store IOCs:
+
+```bash
+python3 src/extract_iocs.py data/operation_pipetree.db
+```
+
+Also export the deduplicated IOCs to JSON:
+
+```bash
+python3 src/extract_iocs.py data/operation_pipetree.db \
+  --output outputs/indicators.json
+```
+
+Running the script again rebuilds the IOC tables from the stored events, so it does not duplicate the extracted indicators. This step is offline and does not query or submit data to external services.
+
+### `src/enrich_iocs.py`
+
+Queries ThreatFox and RDAP for extracted IOCs. It stores the raw API response in `api_cache` and the source, query time, confidence and status in `enrichments`.
+
+Add the ThreatFox key to the ignored `.env` file:
+
+```text
+THREATFOX_AUTH_KEY=your-auth-key
+```
+
+Query both services for a bounded set of IOCs:
+
+```bash
+python3 src/enrich_iocs.py data/operation_pipetree.db \
+  --service all \
+  --limit 5
+```
+
+Query one service or indicator type:
+
+```bash
+python3 src/enrich_iocs.py data/operation_pipetree.db \
+  --service threatfox \
+  --indicator-type hash \
+  --limit 5
+```
+
+Cached responses are reused by default. Use `--refresh` only when a new API response is required. The script only performs read-only lookups. It excludes non-public IP addresses and internal domains from external queries.
 
